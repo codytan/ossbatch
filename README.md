@@ -17,7 +17,7 @@ ob config --ak as_string --sk sk_string
 #### 扫描符合要求文件
 
 ```
-ob list --bucket bucket-name --end_date 20200101 --limit 10000
+ob list --bucket bucket-name --end_date 20200101 --limit 10000 -o xxx.csv
 ```
 
 
@@ -26,10 +26,10 @@ ob list --bucket bucket-name --end_date 20200101 --limit 10000
 
 ```
 批量删除
-batch --bucket bucket-name --type delete --csv 20200101_0.csv --worker 10
+batch --bucket bucket-name --type delete --csv xxx.csv --worker 10
 
 批量修改为深度归档存储
-batch --bucket bucket-name --type chang3 --csv 20200101_0.csv --worker 10
+batch --bucket bucket-name --type chang3 --csv xxx.csv --worker 10
 
 ```
 
@@ -37,7 +37,7 @@ batch --bucket bucket-name --type chang3 --csv 20200101_0.csv --worker 10
 #### 批量下载
 
 ```
-ob pull --bucket bucket-name --domain http://domain.com --worker 10 --csv 20200101_0.csv
+ob pull --bucket bucket-name --domain http://domain.com --worker 10 --csv xxx.csv
 ```
 
 

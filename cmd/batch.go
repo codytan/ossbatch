@@ -129,9 +129,8 @@ func batchOpWorker(workerName string) (err error) {
 			return
 		}
 
-		//fmt.Println(chtypeOps)
-
 		var succ_num uint32
+		var try_num int
 		rets, err := bucketManager.Batch(batchOps)
 		// fmt.Printf("%+v", rets)
 		if err != nil {
@@ -141,13 +140,18 @@ func batchOpWorker(workerName string) (err error) {
 					// 200 为成功
 					fmt.Printf("%d\n", ret.Code)
 					if ret.Code != 200 {
-						tmplog.Error("batch error,", ret.Data.Error)
+						tmplog.Errorf("batch error1, try %d, err: %s,", try_num, ret.Data.Error)
 					}
 				}
 			} else {
-				tmplog.Error("batch error,", err)
-
+				tmplog.Errorf("batch error1, try %d, err: %s,", try_num, err)
 			}
+			try_num++
+			if try_num <= cmdTryNum {
+				//继续重试
+				continue
+			}
+
 		} else {
 			// 完全成功
 			for _, ret := range rets {
@@ -175,6 +179,7 @@ func init() {
 
 	BatchCmd.Flags().StringVar(&Bucket, "bucket", "", "bucket name")
 	BatchCmd.Flags().IntVar(&cmdWorker, "worker", 20, "并行处理的协程数量，根据机器和网络及七牛服务处理能力决定，默认20，实测50性能较佳")
+	BatchCmd.Flags().IntVar(&cmdTryNum, "try", 10, "请求重试次数，默认10，应对网络或服务端接口不稳定情况")
 	BatchCmd.Flags().StringVar(&cmdOpType, "type", "", "批量操作类型，change0为转普通存储，change1为转低频存储，change2为转归档存储，change3为转深度归档存储，delete为删除")
 	BatchCmd.Flags().StringVar(&cmdCsv, "csv", "", "需要处理的csv文件路径")
 
