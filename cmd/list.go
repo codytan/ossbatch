@@ -54,7 +54,7 @@ func List() {
 	for {
 		entries, _, nextMarker, hasNext, err := bucketManager.ListFiles(Bucket, Prefix, delimiter, marker, Limit)
 		if err != nil {
-			tmplog.Fatal("request qiniu list api error, ", err)
+			tmplog.Errorf("request qiniu list api error: %s, will try ", err)
 		}
 
 		for _, entry := range entries {
