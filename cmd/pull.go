@@ -100,7 +100,7 @@ func init() {
 	rootCmd.AddCommand(PullCmd)
 
 	PullCmd.Flags().StringVar(&Bucket, "bucket", "", "bucket name")
-	PullCmd.Flags().IntVar(&cmdWorker, "worker", 10, "并行处理的协程数量，根据机器和网络决定，默认10")
+	PullCmd.Flags().IntVar(&cmdWorker, "worker", 6, "并行处理的协程数量，根据机器和网络决定，默认6，网络越好并发可以大一些")
 	PullCmd.Flags().IntVar(&cmdTryNum, "try", 10, "文件下载重试次数，默认10次，在网络不好特别大文件时有效")
 	PullCmd.Flags().StringVar(&cmdDomain, "domain", "", "下载域名")
 	PullCmd.Flags().StringVar(&cmdCsv, "csv", "", "需要处理的csv文件路径")

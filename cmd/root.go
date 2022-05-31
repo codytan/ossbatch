@@ -36,14 +36,13 @@ func init() {
 	// Log as JSON instead of the default ASCII formatter.
 	//logt.SetFormatter(&logrus.JSONFormatter{})
 
-	// now_time := time.Now().Format("20060102")
-	// log_file := now_time + ".log"
-	// file, err := os.OpenFile(log_file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	// if err != nil {
-	// 	logt.Fatal("open log file fatal")
-	// }
+	log_file := "ossbatch.log"
+	file, err := os.OpenFile(log_file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		logt.Fatal("open log file fatal")
+	}
 	//defer file.Close()
-	mw := io.MultiWriter(os.Stdout)
+	mw := io.MultiWriter(os.Stdout, file)
 	logt.SetOutput(mw)
 	logt.SetLevel(logrus.DebugLevel)
 

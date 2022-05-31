@@ -85,7 +85,7 @@ func DownFile(dst string, down_url string) (err error) {
 				break
 			}
 		} else {
-			logt.Debug("saved to " + resp.Filename)
+			logt.Infof("saved to %s, try %d", resp.Filename, try_num)
 			atomic.AddUint32(&totalFileDownNum, 1)
 			break
 		}

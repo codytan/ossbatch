@@ -19,6 +19,7 @@ var (
 	cmdOpType  string
 	cmdEndDate string
 	cmdPrefix  string
+	cmdOutput  string
 	cmdLimit   int
 
 	csvPath  string
@@ -99,6 +100,7 @@ func init() {
 	listCmd.Flags().IntVar(&cmdStoreType, "store_type", 0, "存储类型过滤，0普通存储，1低频存储，2归档存储，3深度归档存储，默认0")
 	listCmd.Flags().IntVar(&cmdLimit, "limit", 0, "匹配记录数，如输入大于0整数后，达到匹配数量后会停止，注由于是批次请求（每次1000），会以批次为单位使用limit，并非完全等于limit记录数")
 	listCmd.Flags().StringVar(&cmdEndDate, "end_date", "", "最后上传时间过滤，得到在此之前的object，格式如：20220101")
+	listCmd.Flags().StringVarP(&cmdOutput, "out", "o", "", "输出csv文件名称")
 
 	listCmd.MarkFlagRequired("bucket")
 	listCmd.MarkFlagRequired("end_date")
@@ -116,11 +118,15 @@ func initList() {
 		}
 	}
 
-	file_name := endDate.Format("20060102") + "_" + fmt.Sprintf("%d", cmdStoreType)
-	if cmdPrefix != "" {
-		file_name += "_" + cmdPrefix
+	if cmdOutput != "" {
+		csvPath = cmdOutput
+	} else {
+		file_name := endDate.Format("20060102") + "_" + fmt.Sprintf("%d", cmdStoreType)
+		if cmdPrefix != "" {
+			file_name += "_" + cmdPrefix
+		}
+		csvPath = file_name + ".csv"
 	}
-	csvPath = file_name + ".csv"
 
 	os.Remove(csvPath)
 
