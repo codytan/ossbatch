@@ -153,6 +153,8 @@ func batchOpWorker(workerName string) (err error) {
 			}
 
 		} else {
+			//重置重试次数
+			try_num = 0
 			// 完全成功
 			for _, ret := range rets {
 				// 200 为成功
