@@ -54,7 +54,7 @@ func DownWorker(workerName string) error {
 			return nil
 		}
 
-		deadline := time.Now().Add(time.Second * 7200).Unix() //2小时有效期
+		deadline := time.Now().Add(time.Second * 3600 * 4).Unix() //4小时有效期
 		privateAccessURL := storage.MakePrivateURL(mac, cmdDomain, key, deadline)
 
 		pathSlice := strings.Split(privateAccessURL, "/")
@@ -104,6 +104,7 @@ func init() {
 	PullCmd.Flags().IntVar(&cmdTryNum, "try", 10, "文件下载重试次数，默认10次，在网络不好特别大文件时有效")
 	PullCmd.Flags().StringVar(&cmdDomain, "domain", "", "下载域名")
 	PullCmd.Flags().StringVar(&cmdCsv, "csv", "", "需要处理的csv文件路径")
+	PullCmd.Flags().IntVar(&cmdVerbose, "verbose", 0, "是否打印详细信息，默认0，输入1为打印详细信息")
 
 	PullCmd.MarkFlagRequired("bucket")
 	PullCmd.MarkFlagRequired("domain")

@@ -16,14 +16,17 @@ import (
 )
 
 var (
-	cmdOpType  string
-	cmdEndDate string
-	cmdPrefix  string
-	cmdOutput  string
-	cmdLimit   int
+	cmdOpType        string
+	cmdEndDate       string
+	cmdPrefix        string
+	cmdOutput        string
+	cmdLimit         int
+	cmdLargeFileSize int //超大文件的size，单位MB
 
-	csvPath  string
-	csvWrite *csv.Writer
+	csvPath       string
+	csvLargePath  string //超大文件单独csv
+	csvWrite      *csv.Writer
+	csvLargeWrite *csv.Writer
 
 	endDate time.Time
 )
@@ -65,11 +68,19 @@ func List() {
 			if put_time_unix.Unix() < endDate.Unix() && entry.Type == cmdStoreType {
 				total_match++
 
-				line := []string{entry.Key, put_time_unix.Format("20060102"), fmt.Sprintf("%v", entry.Type)}
-				//fmt.Printf("%v \n", line)
-				if err1 := csvWrite.Write(line); err1 != nil {
-					logt.Fatal("csv line write fail", err1)
+				mb_size := GetMbFileSize(entry.Fsize)
+				line := []string{entry.Key, put_time_unix.Format("20060102"), fmt.Sprintf("%d", entry.Type), fmt.Sprintf("%d", mb_size)}
+
+				if mb_size > cmdLargeFileSize {
+					if err1 := csvLargeWrite.Write(line); err1 != nil {
+						logt.Fatal("csv line write fail", err1)
+					}
+				} else {
+					if err2 := csvWrite.Write(line); err2 != nil {
+						logt.Fatal("csv-large line write fail", err2)
+					}
 				}
+
 			}
 		}
 
@@ -100,6 +111,7 @@ func init() {
 	listCmd.Flags().StringVar(&cmdPrefix, "prefix", "", "前缀过滤，默认无")
 	listCmd.Flags().IntVar(&cmdStoreType, "store_type", 0, "存储类型过滤，0普通存储，1低频存储，2归档存储，3深度归档存储，默认0")
 	listCmd.Flags().IntVar(&cmdLimit, "limit", 0, "匹配记录数，如输入大于0整数后，达到匹配数量后会停止，注由于是批次请求（每次1000），会以批次为单位使用limit，并非完全等于limit记录数")
+	listCmd.Flags().IntVar(&cmdLargeFileSize, "large", 500, "超大文件的size设置，单位MB，默认500，用于区分超大文件单独放入large_xxx的csv中用于单独处理")
 	listCmd.Flags().StringVar(&cmdEndDate, "end_date", "", "最后上传时间过滤，得到在此之前的object，格式如：20220101")
 	listCmd.Flags().StringVarP(&cmdOutput, "out", "o", "", "输出csv文件名称")
 
@@ -128,14 +140,21 @@ func initList() {
 		}
 		csvPath = file_name + ".csv"
 	}
+	csvLargePath := "large_" + csvPath
 
 	os.Remove(csvPath)
+	os.Remove(csvLargePath)
 
 	file, err := os.OpenFile(csvPath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
 	if err != nil {
 		logt.Fatal("csv open fail")
 	}
+	csvWrite = csv.NewWriter(file)
 	//defer file.Close()
 
-	csvWrite = csv.NewWriter(file)
+	file_large, err1 := os.OpenFile(csvLargePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0777)
+	if err1 != nil {
+		logt.Fatal("csv open fail")
+	}
+	csvLargeWrite = csv.NewWriter(file_large)
 }

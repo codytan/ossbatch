@@ -12,7 +12,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/qiniu/go-sdk/v7/sms/rpc"
 	"github.com/qiniu/go-sdk/v7/storage"
 	"github.com/spf13/cobra"
 )
@@ -41,6 +40,10 @@ var BatchCmd = &cobra.Command{
 	Short: "批量操作object",
 	Long:  `批量操作object，可转深度归档存储，可删除，节省费用`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if cmdVerbose > 0 {
+			logt.SetLevel(logrus.DebugLevel)
+		}
+
 		batchChan = make(chan []string)
 		initQnConn()
 
@@ -52,10 +55,11 @@ var BatchCmd = &cobra.Command{
 		ImportData(cmdCsv)
 		close(batchChan)
 		wg.Wait()
-		logt.Infof("total_num: %d, succ_num: %d", totalNum, totalSuccNum)
+		logt.Infof("task finish, total: %d, succ_num: %d", totalNum, totalSuccNum)
 	},
 }
 
+//读取csv数据推送到chan中，1000为单位
 func ImportData(csvPath string) error {
 	file, err := os.Open(csvPath)
 	if err != nil {
@@ -73,11 +77,12 @@ func ImportData(csvPath string) error {
 
 		if err != nil {
 			if err.Error() == "EOF" {
-				logt.Infof("csv read all, num: %v", i)
+				logt.Infof("csv read all, num: %d", i)
 				pushChan(batch_slice)
 				break
 			} else {
 				logt.Error(err)
+				continue
 			}
 		}
 
@@ -92,6 +97,7 @@ func ImportData(csvPath string) error {
 	return nil
 }
 
+//推送到chan
 func pushChan(list []string) {
 
 	keyOps := make([]string, 0, len(list))
@@ -131,25 +137,20 @@ func batchOpWorker(workerName string) (err error) {
 
 		var succ_num uint32
 		var try_num int
+
+	LOOP:
 		rets, err := bucketManager.Batch(batchOps)
 		// fmt.Printf("%+v", rets)
 		if err != nil {
-			// 遇到错误
-			if _, ok := err.(*rpc.ErrorInfo); ok {
-				for _, ret := range rets {
-					// 200 为成功
-					fmt.Printf("%d\n", ret.Code)
-					if ret.Code != 200 {
-						tmplog.Errorf("batch error1, try %d, err: %s,", try_num, ret.Data.Error)
-					}
-				}
-			} else {
-				tmplog.Errorf("batch error1, try %d, err: %s,", try_num, err)
+			for _, ret := range rets {
+				tmplog.Errorf("batch ret, code: %d, err: %s,", ret.Code, ret.Data.Error)
 			}
+			tmplog.Errorf("batch error, try %d, err: %s,", try_num, err)
+
 			try_num++
 			if try_num <= cmdTryNum {
 				//继续重试
-				continue
+				goto LOOP
 			}
 
 		} else {
@@ -160,7 +161,7 @@ func batchOpWorker(workerName string) (err error) {
 				// 200 为成功
 				//fmt.Printf("%+v", ret)
 				if ret.Code != 200 {
-					fmt.Println("ret_code:", ret.Code, "error:", ret.Data.Error, "hash:", ret.Data.Hash, "error:", ret.Data.Error)
+					tmplog.Errorf("batch ret2, code: %d, err: %s,", ret.Code, ret.Data.Error)
 				} else {
 					succ_num++
 				}
@@ -170,8 +171,8 @@ func batchOpWorker(workerName string) (err error) {
 		total_num := uint32(len(batchOps))
 		atomic.AddUint32(&totalNum, total_num)
 		atomic.AddUint32(&totalSuccNum, succ_num)
-		tmplog.Infof("batch op finish, total_num:%d, succ num:%d", total_num, succ_num)
-		tmplog.Infof("total_process, succ: %d, total: %d \n", totalSuccNum, totalNum)
+		tmplog.Infof("current op finish, total_num:%d, succ num:%d", total_num, succ_num)
+		tmplog.Infof("total_process, succ: %d, total: %d", totalSuccNum, totalNum)
 	}
 	return
 }
@@ -182,6 +183,7 @@ func init() {
 	BatchCmd.Flags().StringVar(&Bucket, "bucket", "", "bucket name")
 	BatchCmd.Flags().IntVar(&cmdWorker, "worker", 20, "并行处理的协程数量，根据机器和网络及七牛服务处理能力决定，默认20，实测50性能较佳")
 	BatchCmd.Flags().IntVar(&cmdTryNum, "try", 10, "请求重试次数，默认10，应对网络或服务端接口不稳定情况")
+	BatchCmd.Flags().IntVar(&cmdVerbose, "verbose", 0, "是否打印详细信息，默认0，输入1为打印详细信息")
 	BatchCmd.Flags().StringVar(&cmdOpType, "type", "", "批量操作类型，change0为转普通存储，change1为转低频存储，change2为转归档存储，change3为转深度归档存储，delete为删除")
 	BatchCmd.Flags().StringVar(&cmdCsv, "csv", "", "需要处理的csv文件路径")
 

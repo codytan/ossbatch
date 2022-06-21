@@ -17,13 +17,16 @@ ob config --ak as_string --sk sk_string
 #### 扫描符合要求文件
 
 ```
-ob list --bucket bucket-name --end_date 20200101 --limit 10000 -o xxx.csv
+ob list --bucket bucket-name --end_date 20200101 --limit 1000000 -o xxx.csv
 ```
-
-
+limit参数根据实际批次处理时间决定，测试10万一个批次为一个半天时间方便，也可以一次获取更多，本地切分csv后可多台机器同时进行处理。 
+```
+以10万行为界限拆分csv
+split -d -100000 xxx.csv xxx_
+```
+如为本地备份数据，则可以管理起来对应的csv文件，用于本地查找的索引。  
 
 #### 批量操作
-
 ```
 批量删除
 batch --bucket bucket-name --type delete --csv xxx.csv --worker 10
